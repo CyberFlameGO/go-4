@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
 	"cloud.google.com/go/bigquery"
@@ -72,8 +73,8 @@ func Customize(schema bigquery.Schema, subs map[string]bigquery.FieldSchema) big
 		fs := out[i]
 		s, ok := subs[fs.Name]
 		if ok {
+			log.Printf("Substituting %+v\n", s)
 			*fs = s
-
 		} else {
 			if fs.Type == bigquery.RecordFieldType {
 				fs.Schema = Customize(fs.Schema, subs)
