@@ -20,15 +20,20 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"reflect"
 	"testing"
 
-	"cloud.google.com/go/bigquery"
-	"github.com/go-test/deep"
-	"github.com/m-lab/go/bqext"
-	"github.com/m-lab/go/cloudtest"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
+
+	"cloud.google.com/go/bigquery"
+
+	"github.com/go-test/deep"
+	"github.com/googleapis/google-cloud-go-testing/bigquery/bqiface"
+
+	"github.com/m-lab/go/cloudtest"
+	"github.com/m-lab/go/dataset"
 )
 
 type nopCloser struct {
@@ -36,6 +41,13 @@ type nopCloser struct {
 }
 
 func (nc nopCloser) Close() error { return nil }
+
+func must(t *testing.T, err error) {
+	if err != nil {
+		log.Output(2, err.Error())
+		t.Fatal(err)
+	}
+}
 
 // LoggingCloudClient is used to get the ResponseBody used in the test client below.
 func LoggingCloudClient() (*http.Client, error) {
@@ -84,7 +96,7 @@ func getOKClient() *http.Client {
 // TODO - update to use bqiface fake instead of getOKClient
 func TestGetTableStatsMock(t *testing.T) {
 	opts := []option.ClientOption{option.WithHTTPClient(getOKClient())}
-	dsExt, err := bqext.NewDataset("mock", "mock", opts...)
+	dsExt, err := dataset.NewDataset(context.Background(), "mock", "mock", opts...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,52 +125,73 @@ func TestGetTableStatsMock(t *testing.T) {
 // improve coverage metrics.
 // TODO - update to use bqiface fake instead of getOKClient
 func TestResultQuery(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	// Create a dummy client.
 	opts := []option.ClientOption{option.WithHTTPClient(getOKClient())}
-	dsExt, err := bqext.NewDataset("mock", "mock", opts...)
+	dsExt, err := dataset.NewDataset(ctx, "mock", "mock", opts...)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	q := dsExt.ResultQuery("query string", true)
-	qc := q.QueryConfig
-	if !qc.DryRun {
-		t.Error("DryRun should be set.")
-	}
+	var q bqiface.Query
+	q, err = dsExt.ResultQuery("query string", true)
+	must(t, err)
+	/*
+		qc := q.QueryConfig
+		if !qc.DryRun {
+			t.Error("DryRun should be set.")
+		}*/
 
-	q = dsExt.ResultQuery("query string", false)
-	qc = q.QueryConfig
+	q, err = dsExt.ResultQuery("query string", false)
+	must(t, err)
+	/*qc = q.QueryConfig
 	if qc.DryRun {
 		t.Error("DryRun should be false.")
-	}
+	}*/
+	j, err := q.Run(ctx)
+	must(t, err)
+	js, err := j.Wait(ctx)
+	must(t, err)
+	log.Println(js)
 }
 
 // This test only check very basic stuff.  Intended mostly just to
 // improve coverage metrics.
 // TODO - update to use bqiface fake instead of getOKClient
 func TestDestQuery(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	// Create a dummy client.
 	opts := []option.ClientOption{option.WithHTTPClient(getOKClient())}
-	dsExt, err := bqext.NewDataset("mock", "mock", opts...)
+	dsExt, err := dataset.NewDataset(ctx, "mock", "mock", opts...)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	q := dsExt.DestQuery("query string", nil, bigquery.WriteEmpty)
-	qc := q.QueryConfig
-	if qc.Dst != nil {
-		t.Error("Destination should be nil.")
-	}
-	if !qc.DryRun {
-		t.Error("DryRun should be set.")
-	}
+	log.Printf("%+v", reflect.TypeOf(q))
+	j, err := q.Run(ctx)
+	must(t, err)
+	js, err := j.Wait(ctx)
+	must(t, err)
+	log.Println(js)
 
-	q = dsExt.DestQuery("query string", dsExt.Table("foobar"), bigquery.WriteEmpty)
-	qc = q.QueryConfig
-	if qc.Dst.TableID != "foobar" {
-		t.Error("Destination should be foobar.")
-	}
-	if qc.DryRun {
-		t.Error("DryRun should be false.")
-	}
+	/*
+		qc := q.QueryConfig
+		if qc.Dst != nil {
+			t.Error("Destination should be nil.")
+		}
+		if !qc.DryRun {
+			t.Error("DryRun should be set.")
+		}
+
+		q = dsExt.DestQuery("query string", dsExt.Table("foobar"), bigquery.WriteEmpty)
+		qc = q.QueryConfig
+		if qc.Dst.TableID != "foobar" {
+			t.Error("Destination should be foobar.")
+		}
+		if qc.DryRun {
+			t.Error("DryRun should be false.")
+		}*/
 }

@@ -85,6 +85,7 @@ func (dsExt *Dataset) ResultQuery(query string, dryRun bool) (bqiface.Query, err
 	if q == nil {
 		return nil, ErrNilQuery
 	}
+	log.Printf("%+v\n", q)
 	qc := dsExt.queryConfig(query, dryRun)
 	q.SetQueryConfig(qc)
 	return q, nil
