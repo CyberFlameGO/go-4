@@ -1,4 +1,4 @@
-package storagex
+package storagex_test
 
 import (
 	"bytes"
@@ -13,6 +13,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/m-lab/go/rtx"
+	"github.com/m-lab/go/storagex"
 	"google.golang.org/api/iterator"
 )
 
@@ -60,7 +61,7 @@ func TestBucket_Walk(t *testing.T) {
 	ctx := context.Background()
 	client, err := storage.NewClient(ctx)
 	rtx.Must(err, "Failed to create client")
-	visit := func(o *Object) error {
+	visit := func(o *storagex.Object) error {
 		t.Log(o.ObjectName())
 		return nil
 	}
@@ -85,7 +86,7 @@ func TestBucket_Walk(t *testing.T) {
 	for _, tt := range tests {
 		ctx, cancel := context.WithTimeout(ctx, time.Minute)
 		defer cancel()
-		bucket := NewBucket(client.Bucket("m-lab-go-storagex-mlab-testing"))
+		bucket := storagex.NewBucket(client.Bucket("m-lab-go-storagex-mlab-testing"))
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.iter != nil {
 				bucket.itNext = tt.iter.itNext
@@ -139,7 +140,7 @@ func TestObject_Copy(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			o := &Object{
+			o := &storagex.Object{
 				ObjectHandle: tt.ObjectHandle,
 			}
 			if err := o.Copy(tt.ctx, tt.w); (err != nil) != tt.wantErr {
@@ -180,7 +181,7 @@ func TestObject_LocalName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			o := &Object{
+			o := &storagex.Object{
 				ObjectHandle: tt.ObjectHandle,
 				prefix:       tt.prefix,
 			}
@@ -218,7 +219,7 @@ func TestBucket_Dirs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			b := &Bucket{
+			b := &storagex.Bucket{
 				BucketHandle: tt.b,
 				itNext:       tt.iter.itNext,
 			}

@@ -1,4 +1,5 @@
 // Package storagex extends cloud.google.com/go/storage.
+// TODO - this should probably be moved to cloud/gcs.
 package storagex
 
 import (
@@ -55,6 +56,10 @@ type Bucket struct {
 
 	// itNext allows iterator injection for unit tests.
 	itNext func(it *storage.ObjectIterator) (*storage.ObjectAttrs, error)
+}
+
+func SetItNext(b Bucket, f func(it *storage.ObjectIterator) (*storage.ObjectAttrs, error)) {
+	b.itNext = f
 }
 
 // NewBucket creates a new Bucket.
