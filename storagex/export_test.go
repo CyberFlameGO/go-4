@@ -6,6 +6,6 @@ func SetItNext(b Bucket, f func(it *storage.ObjectIterator) (*storage.ObjectAttr
 	b.itNext = f
 }
 
-func NewBucket(bucket *storage.BucketHandle, it f func(it *storage.ObjectIterator) (*storage.ObjectAttrs, error)) {
+func NewBucketWithIt(bucket *storage.BucketHandle, it f func(it *storage.ObjectIterator) (*storage.ObjectAttrs, error)) {
 
 }

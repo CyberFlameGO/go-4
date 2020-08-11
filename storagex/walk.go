@@ -10,13 +10,14 @@ import (
 	"strings"
 
 	"cloud.google.com/go/storage"
+	"github.com/googleapis/google-cloud-go-testing/storage/stiface"
 	"google.golang.org/api/iterator"
 )
 
 // Object extends the storage.ObjectHandle operations on GCS Objects. Objects are
 // generated during a Bucket.Walk.
 type Object struct {
-	*storage.ObjectHandle
+	stiface.ObjectHandle
 	*storage.ObjectAttrs
 	prefix string
 }
@@ -27,7 +28,7 @@ type Object struct {
 // GCS Object name (such as when pathPrefix is a single object), then the Object
 // base name is returned.
 func (o *Object) LocalName() string {
-	if o.ObjectName() == o.prefix {
+	if o.Attrs(ctx).Name() == o.prefix {
 		// For single-file downloads, remove everything but the basename.
 		return path.Base(o.ObjectName())
 	}
@@ -52,21 +53,17 @@ func (o *Object) Copy(ctx context.Context, w io.Writer) error {
 
 // Bucket extends storage.BucketHandle operations.
 type Bucket struct {
-	*storage.BucketHandle
+	stiface.BucketHandle
 
 	// itNext allows iterator injection for unit tests.
-	itNext func(it *storage.ObjectIterator) (*storage.ObjectAttrs, error)
-}
-
-func SetItNext(b Bucket, f func(it *storage.ObjectIterator) (*storage.ObjectAttrs, error)) {
-	b.itNext = f
+	itNext func(it stiface.ObjectIterator) (*storage.ObjectAttrs, error)
 }
 
 // NewBucket creates a new Bucket.
-func NewBucket(b *storage.BucketHandle) *Bucket {
+func NewBucket(b stiface.BucketHandle) *Bucket {
 	return &Bucket{
 		BucketHandle: b,
-		itNext: func(it *storage.ObjectIterator) (*storage.ObjectAttrs, error) {
+		itNext: func(it stiface.ObjectIterator) (*storage.ObjectAttrs, error) {
 			return it.Next()
 		},
 	}
