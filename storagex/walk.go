@@ -20,6 +20,18 @@ type Object struct {
 	prefix string
 }
 
+// iter is an interface that allows result injection during unit tests.
+type iter interface {
+	Next(it *storage.ObjectIterator) (*storage.ObjectAttrs, error)
+}
+
+// stdIter invokes the iterator.Next method.
+type stdIter struct{}
+
+func (n *stdIter) Next(it *storage.ObjectIterator) (*storage.ObjectAttrs, error) {
+	return it.Next()
+}
+
 // LocalName returns a path suitable for creating a local file. The local name
 // may include path components because it is derived from the original GCS Object
 // name with the original Walk pathPrefix removed. If the pathPrefix equals the
@@ -53,17 +65,15 @@ func (o *Object) Copy(ctx context.Context, w io.Writer) error {
 type Bucket struct {
 	*storage.BucketHandle
 
-	// itNext allows iterator injection for unit tests.
-	itNext func(it *storage.ObjectIterator) (*storage.ObjectAttrs, error)
+	// iter allows iterator injection for unit tests.
+	iter
 }
 
 // NewBucket creates a new Bucket.
 func NewBucket(b *storage.BucketHandle) *Bucket {
 	return &Bucket{
 		BucketHandle: b,
-		itNext: func(it *storage.ObjectIterator) (*storage.ObjectAttrs, error) {
-			return it.Next()
-		},
+		iter:         &stdIter{},
 	}
 }
 
@@ -78,7 +88,7 @@ func (b *Bucket) Walk(ctx context.Context, pathPrefix string, visit func(o *Obje
 func walk(ctx context.Context, bucket *Bucket, prefix, rootPrefix string, visit func(o *Object) error) error {
 	it := bucket.Objects(ctx, &storage.Query{Prefix: prefix, Delimiter: "/"})
 	for {
-		attr, err := bucket.itNext(it)
+		attr, err := bucket.Next(it)
 		if err == iterator.Done {
 			return nil
 		}
@@ -109,7 +119,7 @@ func (b *Bucket) Dirs(ctx context.Context, prefix string) ([]string, error) {
 	var ret []string
 	it := b.Objects(ctx, &storage.Query{Prefix: prefix, Delimiter: "/"})
 	for {
-		attr, err := b.itNext(it)
+		attr, err := b.Next(it)
 		if err == iterator.Done {
 			return ret, nil
 		}

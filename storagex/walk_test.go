@@ -22,7 +22,7 @@ func init() {
 
 // fakeIter is the common interface for the implemented iter types below.
 type fakeIter interface {
-	itNext(it *storage.ObjectIterator) (*storage.ObjectAttrs, error)
+	Next(it *storage.ObjectIterator) (*storage.ObjectAttrs, error)
 }
 
 // errIter allows injecting iteration errors.
@@ -30,7 +30,7 @@ type errIter struct {
 	i int
 }
 
-func (e *errIter) itNext(it *storage.ObjectIterator) (*storage.ObjectAttrs, error) {
+func (e *errIter) Next(it *storage.ObjectIterator) (*storage.ObjectAttrs, error) {
 	if e.i > 0 {
 		return nil, fmt.Errorf("Fake error")
 	}
@@ -44,7 +44,7 @@ type iterDone struct {
 	prefix string
 }
 
-func (d *iterDone) itNext(it *storage.ObjectIterator) (*storage.ObjectAttrs, error) {
+func (d *iterDone) Next(it *storage.ObjectIterator) (*storage.ObjectAttrs, error) {
 	if d.i > 0 {
 		return nil, iterator.Done
 	}
@@ -68,7 +68,7 @@ func TestBucket_Walk(t *testing.T) {
 	tests := []struct {
 		name    string
 		prefix  string
-		iter    fakeIter
+		iter    iter
 		wantErr bool
 	}{
 		{
@@ -88,7 +88,7 @@ func TestBucket_Walk(t *testing.T) {
 		bucket := NewBucket(client.Bucket("m-lab-go-storagex-mlab-testing"))
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.iter != nil {
-				bucket.itNext = tt.iter.itNext
+				bucket.iter = tt.iter
 			}
 			if err := bucket.Walk(ctx, tt.prefix, visit); (err != nil) != tt.wantErr {
 				t.Errorf("walk() error = %v, wantErr %v", err, tt.wantErr)
@@ -220,7 +220,7 @@ func TestBucket_Dirs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			b := &Bucket{
 				BucketHandle: tt.b,
-				itNext:       tt.iter.itNext,
+				iter:         tt.iter,
 			}
 			ctx := context.Background()
 			got, err := b.Dirs(ctx, "")
