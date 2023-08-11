@@ -18,9 +18,8 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/m-lab/uuid-annotator v0.4.1
 	github.com/prometheus/client_golang v1.7.1
-	golang.org/x/net v0.0.0-20200421231249-e086a090c8fd
+	golang.org/x/net v0.7.0
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	golang.org/x/tools v0.0.0-20200422205258-72e4a01eba43 // indirect
 	google.golang.org/api v0.22.0
 	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/genproto v0.0.0-20200420144010-e5e8543f8aeb // indirect
